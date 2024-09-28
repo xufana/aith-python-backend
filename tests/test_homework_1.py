@@ -53,6 +53,7 @@ def test_factorial(query: dict[str, Any], status_code: int):
     ("params", "status_code"),
     [
         ("/lol", HTTPStatus.UNPROCESSABLE_ENTITY),
+        ("/", HTTPStatus.UNPROCESSABLE_ENTITY),
         ("/-1", HTTPStatus.BAD_REQUEST),
         ("/0", HTTPStatus.OK),
         ("/1", HTTPStatus.OK),
