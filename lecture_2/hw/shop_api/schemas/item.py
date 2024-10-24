@@ -25,8 +25,8 @@ class ItemPut(BaseModel):
     }
 
 class ItemUpd(BaseModel):
-    name: Optional[str]
-    price: Optional[float]
+    name: Optional[str] = None
+    price: Optional[float] = None
 
     model_config = {
         "extra": "forbid"

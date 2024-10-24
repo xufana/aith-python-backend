@@ -1,17 +1,18 @@
 import http
 from fastapi import APIRouter, Query, HTTPException
-from lecture_2.hw.shop_api.schemas import Item, ItemCreate, ItemPut, ItemUpd
+from lecture_2.hw.shop_api.schemas.item import Item, ItemCreate, ItemPut, ItemUpd
 from lecture_2.hw.shop_api.dbs import items_db, current_item_id
 from typing import Optional, List
 
 
 router = APIRouter(prefix='/item', tags=['Работа с товарами'])
 
-@router.get("/", summary="Добавление нового товара")
+@router.post("/", status_code=http.HTTPStatus.CREATED, response_model=Item)
 async def add_item(item: ItemCreate) -> Item:
     global current_item_id
     current_item_id += 1
     items_db[current_item_id] = Item(id=current_item_id, name=item.name, price=item.price)
+    print(items_db[current_item_id])
     return items_db[current_item_id]
 
 @router.get("/{id}")
@@ -29,24 +30,22 @@ async def replace_item(id: int, item: ItemPut) -> Item:
     return items_db[id]
 
 @router.patch("/{id}")
-async def alter_item(id: int, item: ItemUpd) -> Item:
-    if id not in items_db:
-        raise HTTPException(status_code=http.HTTPStatus.NOT_MODIFIED, detail="Error occured")
+async def alter_item(id: int, new_item: Optional[ItemUpd] = None) -> Item:
     current_item = items_db.get(id)
-    if not current_item.deleted:
-        if item is None:
+    if current_item and not current_item.deleted:
+        if new_item is None:
             return items_db[id]
-        name = item.name if item.name is not None else current_item.name
-        price = item.price if item.price is not None else current_item.price
+        name = new_item.name if new_item.name is not None else current_item.name
+        price = new_item.price if new_item.price is not None else current_item.price
         items_db[id] = Item(id=id, name=name, price=price, deleted=current_item.deleted)
         return items_db[id]
     else:
         raise HTTPException(status_code=http.HTTPStatus.NOT_MODIFIED, detail="Error occured")
 
-@router.patch("/{id}")
+@router.delete("/{id}")
 async def delete_item(id: int) -> Item:
     item = items_db.get(id)
-    if item is None or item.deleted: 
+    if item is None: 
         raise HTTPException(status_code=http.HTTPStatus.NOT_FOUND, detail="Item not found")
     else:
         items_db[id] = Item(id=id, name=item.name, price=item.price, deleted=True)
