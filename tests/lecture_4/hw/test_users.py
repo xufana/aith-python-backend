@@ -7,6 +7,7 @@ import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
 
+from lecture_4.demo_service.api.contracts import *
 from lecture_4.demo_service.api.main import create_app
 from lecture_4.demo_service.core.users import UserService, UserInfo, UserRole, password_is_longer_than_8
 
@@ -64,7 +65,7 @@ def existing_user(client) -> dict[str, Any]:
     ],
 )
 def test_get_user(client, admin_creds, existing_user, body, status_code):
-    """Тест регистрации нового пользователя и проверки на существующего."""
+    """Тест получения пользователя по id и username."""
     response = client.post("/user-get", params=body, headers={"Authorization": "Basic " + admin_creds})
     print(response.text)
     json = response.json()
@@ -108,7 +109,7 @@ def test_user_get_with_invalid_password(client, existing_user):
             {"username": "testuser",
              "name": "Test User",
              "birthdate": "2000-01-01T00:00:00",
-             "password": "Short"},
+             "password": "1"},
             HTTPStatus.BAD_REQUEST,
         ),
     ],
@@ -147,7 +148,7 @@ def test_user_registration(client, existing_user, user, body, status_code):
     ],
 )
 def test_user_promote(request, client, admin_creds, existing_user, name, body, status_code):
-    """Тест регистрации нового пользователя и проверки на существующего."""
+    """Тест добавления админки пользователю."""
     if name == "wrong_cred":
         creds = base64.b64encode(f"testuser:AnotherValidPassword123".encode("ascii")).decode("utf-8")
     else:
@@ -157,3 +158,17 @@ def test_user_promote(request, client, admin_creds, existing_user, name, body, s
     assert response.status_code == status_code
 
 
+def test_user_service_password_validation():
+    """Тесты для валидации паролей."""
+    user_service = app.state.user_service
+
+    # Регистрация с недопустимым паролем
+    user_info = UserInfo(
+        username="weakpassworduser",
+        name="Weak Password User",
+        birthdate=datetime(2000, 1, 1),
+        role=UserRole.USER,
+        password="weak"
+    )
+    with pytest.raises(ValueError, match="invalid password"):
+        user_service.register(user_info)
